@@ -98,8 +98,8 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
         // Admin scripts
         add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 
-        // Frontend scripts
-        add_action( 'wp_enqueue_scripts', array( $this, 'frontend_scripts' ) );
+        // Frontend scripts and styles
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_checkout_scripts' ) );
 
         // AJAX handlers
         add_action( 'wp_ajax_moneris_test_connection', array( $this, 'ajax_test_connection' ) );
@@ -602,21 +602,15 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
     }
 
     /**
-     * Enqueue frontend scripts
+     * Enqueue scripts and styles for checkout
      */
-    public function frontend_scripts() {
-        // Only load on checkout
+    public function enqueue_checkout_scripts() {
+        // Only load on checkout page when gateway is available
         if ( ! is_checkout() || ! $this->is_available() ) {
             return;
         }
 
-        // Check if using hosted tokenization
-        $use_hosted_tokenization = $this->get_option( 'hosted_tokenization', 'no' ) === 'yes';
-        if ( ! $use_hosted_tokenization ) {
-            return; // Don't load if not using HPP
-        }
-
-        // Enqueue checkout script
+        // Enqueue JavaScript
         wp_enqueue_script(
             'moneris-checkout',
             MONERIS_PLUGIN_URL . 'assets/js/moneris-checkout' . ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min' ) . '.js',
@@ -625,7 +619,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
             true
         );
 
-        // Localize script
+        // Localize script with parameters
         wp_localize_script(
             'moneris-checkout',
             'moneris_checkout_params',
@@ -634,7 +628,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
                 'test_mode'     => $this->is_test_mode(),
                 'iframe_origin' => $this->is_test_mode() ? 'https://esqa.moneris.com' : 'https://www3.moneris.com',
                 'debug'         => $this->get_option( 'enable_logging' ) === 'yes',
-                'nonce'         => wp_create_nonce( 'moneris_payment' ),
+                'nonce'         => wp_create_nonce( 'moneris-checkout' ),
                 'gateway_id'    => $this->id,
                 'strings'       => array(
                     'processing'    => __( 'Processing payment...', 'moneris-enhanced-gateway-for-woocommerce' ),
@@ -643,6 +637,14 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
                     'invalid_card'  => __( 'Invalid card details. Please check and try again.', 'moneris-enhanced-gateway-for-woocommerce' ),
                 ),
             )
+        );
+
+        // Enqueue CSS
+        wp_enqueue_style(
+            'moneris-checkout',
+            MONERIS_PLUGIN_URL . 'assets/css/moneris-checkout.css',
+            array(),
+            MONERIS_VERSION
         );
     }
 
@@ -896,46 +898,69 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * Output payment fields
      */
     public function payment_fields() {
-        // Display description
+        // Show description
         if ( $this->description ) {
             echo wpautop( wptexturize( $this->description ) );
         }
 
-        // Check if hosted tokenization is enabled
-        $use_hosted_tokenization = $this->get_option( 'hosted_tokenization', 'no' ) === 'yes';
+        // For now, always use hosted tokenization
+        $use_hosted = true;
 
-        if ( $use_hosted_tokenization ) {
-            // Use hosted tokenization iframe
-            $tokenization = new \Moneris_Enhanced_Gateway\API\Moneris_Hosted_Tokenization( $this );
-
-            // Get iframe URL (without order for now, as order isn't created yet at checkout)
-            $iframe_url = $tokenization->get_iframe_url();
-
-            // Set variables for template
-            $test_mode = $this->is_test_mode();
-            $iframe_origin = $test_mode
-                ? 'https://esqa.moneris.com'
-                : 'https://www3.moneris.com';
-            $debug_mode = $this->get_option( 'enable_logging' ) === 'yes';
-
-            // Include template
-            if ( file_exists( MONERIS_PLUGIN_DIR . 'templates/payment-form-hosted-tokenization.php' ) ) {
-                include MONERIS_PLUGIN_DIR . 'templates/payment-form-hosted-tokenization.php';
-            } else {
-                // Fallback if template not found
-                echo '<div class="woocommerce-error">' . esc_html__( 'Payment form template not found. Please contact support.', 'moneris-enhanced-gateway-for-woocommerce' ) . '</div>';
-            }
+        if ( $use_hosted ) {
+            // Load hosted tokenization iframe
+            $this->render_hosted_tokenization_form();
         } else {
-            // Standard payment form (direct API)
+            // Fallback to standard credit card fields (if needed)
             if ( file_exists( MONERIS_PLUGIN_DIR . 'templates/payment-form.php' ) ) {
                 $gateway = $this; // Pass gateway instance to template
                 include MONERIS_PLUGIN_DIR . 'templates/payment-form.php';
             } else {
                 // Basic fallback form
-                echo '<div id="moneris-payment-form">';
-                echo '<p>' . esc_html__( 'Credit card details will be securely processed.', 'moneris-enhanced-gateway-for-woocommerce' ) . '</p>';
-                echo '</div>';
+                $this->form();
             }
+        }
+    }
+
+    /**
+     * Render hosted tokenization form
+     */
+    private function render_hosted_tokenization_form() {
+        try {
+            // Get tokenization handler
+            $tokenization = new \Moneris_Enhanced_Gateway\API\Moneris_Hosted_Tokenization( $this );
+
+            // Get iframe URL
+            $iframe_url = $tokenization->get_iframe_url();
+
+            // Set template variables
+            $test_mode = $this->is_test_mode();
+            $iframe_origin = $test_mode ? 'https://esqa.moneris.com' : 'https://www3.moneris.com';
+            $debug_mode = $this->get_option( 'enable_logging' ) === 'yes';
+
+            // Check if template exists
+            $template_path = MONERIS_PLUGIN_DIR . 'templates/payment-form-hosted-tokenization.php';
+
+            if ( file_exists( $template_path ) ) {
+                include $template_path;
+            } else {
+                // Fallback if template missing
+                ?>
+                <div class="moneris-hosted-tokenization">
+                    <p style="color: red;"><?php esc_html_e( 'Payment form template not found. Please contact support.', 'moneris-enhanced-gateway-for-woocommerce' ); ?></p>
+                </div>
+                <?php
+            }
+        } catch ( \Exception $e ) {
+            // Log error
+            if ( $this->get_option( 'enable_logging' ) === 'yes' ) {
+                $logger = new \Moneris_Enhanced_Gateway\Utils\Moneris_Logger();
+                $logger->log( 'Error rendering payment form: ' . $e->getMessage(), 'error' );
+            }
+            ?>
+            <div class="moneris-error">
+                <p><?php esc_html_e( 'Unable to load payment form. Please try another payment method or contact support.', 'moneris-enhanced-gateway-for-woocommerce' ); ?></p>
+            </div>
+            <?php
         }
     }
 

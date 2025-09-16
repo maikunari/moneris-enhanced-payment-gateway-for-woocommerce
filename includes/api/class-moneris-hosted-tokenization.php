@@ -223,16 +223,118 @@ class Moneris_Hosted_Tokenization {
      * @return string HPP iframe URL.
      */
     public function get_iframe_url( $order = null ) {
+        // Get HPP ID
+        $hpp_id = $this->get_hpp_id();
+
+        // If no real HPP ID, show a test message
+        if ( empty( $hpp_id ) || 'TEST_HPP_001' === $hpp_id ) {
+            // Return a data URL with instructions
+            $test_html = '
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                        padding: 30px;
+                        text-align: center;
+                        background: #f5f5f5;
+                        color: #333;
+                    }
+                    .container {
+                        max-width: 500px;
+                        margin: 0 auto;
+                        background: white;
+                        padding: 30px;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    }
+                    h3 {
+                        color: #0073aa;
+                        margin-top: 0;
+                    }
+                    .test-mode {
+                        background: #fff3cd;
+                        color: #856404;
+                        padding: 10px;
+                        border-radius: 4px;
+                        margin: 20px 0;
+                        font-size: 14px;
+                    }
+                    ol {
+                        text-align: left;
+                        display: inline-block;
+                        margin: 20px 0;
+                    }
+                    li {
+                        margin: 10px 0;
+                    }
+                    .test-cards {
+                        background: #e8f4f8;
+                        padding: 15px;
+                        border-radius: 4px;
+                        margin-top: 20px;
+                    }
+                    .test-cards h4 {
+                        margin-top: 0;
+                        color: #0073aa;
+                    }
+                    .card-info {
+                        text-align: left;
+                        font-family: monospace;
+                        font-size: 13px;
+                        margin: 10px 0;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h3>🔒 Moneris Test Mode</h3>
+                    <div class="test-mode">
+                        <strong>HPP credentials not configured</strong>
+                    </div>
+                    <p>To enable Moneris payment processing:</p>
+                    <ol>
+                        <li>Get test credentials from Moneris</li>
+                        <li>Go to WooCommerce → Settings → Payments → Moneris</li>
+                        <li>Enter your Store ID, API Token, HPP ID, and HPP Key</li>
+                        <li>Save settings and refresh this page</li>
+                    </ol>
+                    <div class="test-cards">
+                        <h4>Test Card Numbers</h4>
+                        <div class="card-info">
+                            <strong>Visa:</strong> 4242 4242 4242 4242<br>
+                            <strong>MasterCard:</strong> 5454 5454 5454 5454<br>
+                            <strong>Expiry:</strong> Any future date<br>
+                            <strong>CVV:</strong> Any 3 digits
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>';
+
+            return 'data:text/html;base64,' . base64_encode( $test_html );
+        }
+
+        // Build real iframe URL
         $base_url = $this->is_test_mode() ? $this->hpp_urls['test'] : $this->hpp_urls['production'];
 
+        // Basic parameters
+        $params = array(
+            'hpp_id'      => $hpp_id,
+            'hpp_preload' => '',
+        );
+
+        // Add order data if provided
         if ( $order instanceof \WC_Order ) {
             $request_data = $this->generate_hpp_request( $order );
             if ( ! is_wp_error( $request_data ) ) {
-                $base_url = add_query_arg( $request_data, $base_url );
+                $params = array_merge( $params, $request_data );
             }
         }
 
-        return $base_url;
+        return add_query_arg( $params, $base_url );
     }
 
     /**

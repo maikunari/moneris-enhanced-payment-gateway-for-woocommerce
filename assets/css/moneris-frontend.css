@@ -5,27 +5,43 @@
  */
 
 /* Payment method container */
-.payment_method_moneris_enhanced_gateway {
+.payment_method_moneris_enhanced_gateway,
+.payment_method_moneris_enhanced {
     position: relative;
 }
 
 /* Card form styling */
-#wc-moneris_enhanced_gateway-cc-form {
+#wc-moneris_enhanced_gateway-cc-form,
+#wc-moneris_enhanced-cc-form {
     padding: 0;
     border: 0;
 }
 
 /* Card icons */
-.moneris-card-icons {
+.moneris-card-icons,
+.moneris-payment-icons {
     display: inline-block;
     vertical-align: middle;
     margin-left: 10px;
 }
 
-.moneris-card-icons img {
+.moneris-card-icons img,
+.moneris-payment-icons img {
     max-height: 25px;
     margin: 0 2px;
     vertical-align: middle;
+}
+
+.moneris-card-icon {
+    width: auto;
+    height: 24px;
+    margin: 0 4px;
+}
+
+.moneris-logo-icon {
+    height: 20px;
+    margin-left: 8px;
+    opacity: 0.8;
 }
 
 /* Test mode notice */
@@ -120,12 +136,19 @@
 }
 
 /* Hosted tokenization iframe */
-.moneris-hosted-frame {
+.moneris-hosted-frame,
+#moneris-hpp-container {
     width: 100%;
     min-height: 300px;
     border: 1px solid #ddd;
     border-radius: 5px;
     background: #fff;
+}
+
+#moneris-hpp-container iframe {
+    width: 100%;
+    min-height: 400px;
+    border: none;
 }
 
 /* Responsive adjustments */

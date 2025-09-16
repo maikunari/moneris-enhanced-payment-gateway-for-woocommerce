@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Moneris Enhanced Payment Gateway for WooCommerce
- * Plugin URI: https://yourwebsite.com/moneris-enhanced-gateway
+ * Plugin URI: https://github.com/maikunari/moneris-enhanced-payment-gateway-for-woocommerce
  * Description: Secure Canadian payment processing with Moneris Hosted Tokenization
  * Version: 1.0.0
- * Author: [Your Name]
- * Author URI: https://yourwebsite.com
+ * Author: Mike Sewell
+ * Author URI: https://sonicpixel.ca 
  * Text Domain: moneris-enhanced-gateway-for-woocommerce
  * Domain Path: /languages
  * Requires at least: 6.0

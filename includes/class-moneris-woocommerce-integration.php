@@ -197,7 +197,8 @@ class Moneris_WooCommerce_Integration {
     public function register_gateway( $gateways ) {
         // Only register if all compatibility checks pass
         if ( $this->check_full_compatibility() ) {
-            $gateways[] = 'Moneris_Enhanced_Gateway\Gateways\Moneris_Gateway';
+            // Register the new enhanced gateway class
+            $gateways[] = 'Moneris_Enhanced_Gateway\Gateways\WC_Gateway_Moneris_Enhanced';
         }
 
         return $gateways;

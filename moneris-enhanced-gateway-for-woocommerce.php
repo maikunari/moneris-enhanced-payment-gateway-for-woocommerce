@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
+
 // Define plugin constants
 define( 'MONERIS_VERSION', '1.0.0' );
 define( 'MONERIS_PLUGIN_FILE', __FILE__ );

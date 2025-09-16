@@ -11,6 +11,7 @@ namespace Moneris_Enhanced_Gateway\Gateways;
 use WC_Payment_Gateway;
 use WC_Order;
 use WP_Error;
+use Moneris_Enhanced_Gateway\Utils\Moneris_Credential_Manager;
 
 // Prevent direct file access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,9 +45,19 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
     );
 
     /**
+     * Credential Manager instance
+     *
+     * @var Moneris_Credential_Manager
+     */
+    private $credential_manager;
+
+    /**
      * Constructor
      */
     public function __construct() {
+        // Initialize credential manager
+        $this->credential_manager = new Moneris_Credential_Manager( $this->is_test_mode() );
+
         // Gateway configuration
         $this->id                 = 'moneris_enhanced';
         $this->icon               = $this->get_gateway_icon();
@@ -267,21 +278,33 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
             return false;
         }
 
-        // Encrypt sensitive credentials before saving
-        $sensitive_fields = array( 'api_token', 'hpp_key' );
-        foreach ( $sensitive_fields as $field ) {
-            $field_key = $this->get_field_key( $field );
-            if ( ! empty( $post_data[ $field_key ] ) ) {
-                $post_data[ $field_key ] = $this->encrypt_credential( $post_data[ $field_key ] );
+        // Store credentials using credential manager
+        $store_id = isset( $post_data[ $this->get_field_key( 'store_id' ) ] ) ? sanitize_text_field( $post_data[ $this->get_field_key( 'store_id' ) ] ) : '';
+        $api_token = isset( $post_data[ $this->get_field_key( 'api_token' ) ] ) ? $post_data[ $this->get_field_key( 'api_token' ) ] : '';
+        $hpp_id = isset( $post_data[ $this->get_field_key( 'hpp_id' ) ] ) ? sanitize_text_field( $post_data[ $this->get_field_key( 'hpp_id' ) ] ) : '';
+        $hpp_key = isset( $post_data[ $this->get_field_key( 'hpp_key' ) ] ) ? $post_data[ $this->get_field_key( 'hpp_key' ) ] : '';
+
+        if ( ! empty( $store_id ) && ! empty( $api_token ) && ! empty( $hpp_id ) && ! empty( $hpp_key ) ) {
+            $credential_result = $this->credential_manager->store_credentials( $store_id, $api_token, $hpp_id, $hpp_key );
+
+            if ( is_wp_error( $credential_result ) ) {
+                WC_Admin_Settings::add_error(
+                    sprintf(
+                        /* translators: %s: error message */
+                        __( 'Failed to store credentials: %s', 'moneris-enhanced-gateway-for-woocommerce' ),
+                        $credential_result->get_error_message()
+                    )
+                );
+                return false;
             }
         }
 
         // Save settings
         $saved = parent::process_admin_options();
 
-        // Test API connection
+        // Test API connection using credential manager
         if ( $saved ) {
-            $test_result = $this->test_api_connection();
+            $test_result = $this->credential_manager->test_connection();
 
             if ( is_wp_error( $test_result ) ) {
                 WC_Admin_Settings::add_error(
@@ -295,6 +318,13 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
                 WC_Admin_Settings::add_message(
                     __( 'API Connection Test Successful!', 'moneris-enhanced-gateway-for-woocommerce' )
                 );
+
+                // Check if credentials need rotation
+                if ( $this->credential_manager->needs_rotation() ) {
+                    WC_Admin_Settings::add_message(
+                        __( 'Note: Your credentials are due for rotation. Consider updating them soon for security.', 'moneris-enhanced-gateway-for-woocommerce' )
+                    );
+                }
             }
 
             // Clear cache/transients
@@ -376,7 +406,11 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * @return string
      */
     public function get_store_id() {
-        return $this->get_option( 'store_id' );
+        $credentials = $this->credential_manager->get_credentials();
+        if ( is_wp_error( $credentials ) ) {
+            return '';
+        }
+        return $credentials['store_id'] ?? '';
     }
 
     /**
@@ -385,8 +419,11 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * @return string
      */
     public function get_api_token() {
-        $token = $this->get_option( 'api_token' );
-        return $this->decrypt_credential( $token );
+        $credentials = $this->credential_manager->get_credentials();
+        if ( is_wp_error( $credentials ) ) {
+            return '';
+        }
+        return $credentials['api_token'] ?? '';
     }
 
     /**
@@ -395,7 +432,11 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * @return string
      */
     public function get_hpp_id() {
-        return $this->get_option( 'hpp_id' );
+        $credentials = $this->credential_manager->get_credentials();
+        if ( is_wp_error( $credentials ) ) {
+            return '';
+        }
+        return $credentials['hpp_id'] ?? '';
     }
 
     /**
@@ -404,8 +445,11 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * @return string
      */
     public function get_hpp_key() {
-        $key = $this->get_option( 'hpp_key' );
-        return $this->decrypt_credential( $key );
+        $credentials = $this->credential_manager->get_credentials();
+        if ( is_wp_error( $credentials ) ) {
+            return '';
+        }
+        return $credentials['hpp_key'] ?? '';
     }
 
     /**
@@ -587,95 +631,17 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * @return true|WP_Error
      */
     private function test_api_connection() {
-        $store_id = $this->get_store_id();
-        $api_token = $this->get_api_token();
-
-        if ( empty( $store_id ) || empty( $api_token ) ) {
-            return new WP_Error( 'missing_credentials', __( 'Store ID and API Token are required', 'moneris-enhanced-gateway-for-woocommerce' ) );
-        }
-
-        // Simple API test - Store receipt request
-        $api_url = $this->get_api_url() . '/gateway2/servlet/MpgRequest';
-
-        $xml_request = '<?xml version="1.0" encoding="UTF-8"?>
-            <request>
-                <store_id>' . esc_html( $store_id ) . '</store_id>
-                <api_token>' . esc_html( $api_token ) . '</api_token>
-                <type>store_receipt</type>
-                <order_id>test_' . time() . '</order_id>
-                <amount>0.00</amount>
-                <pan>4242424242424242</pan>
-                <expdate>2512</expdate>
-                <crypt_type>7</crypt_type>
-            </request>';
-
-        $response = wp_remote_post( $api_url, array(
-            'timeout'     => 30,
-            'headers'     => array(
-                'Content-Type' => 'text/xml',
-            ),
-            'body'        => $xml_request,
-            'httpversion' => '1.1',
-        ) );
-
-        if ( is_wp_error( $response ) ) {
-            return $response;
-        }
-
-        $body = wp_remote_retrieve_body( $response );
-
-        // Check for successful response
-        if ( strpos( $body, '<ResponseCode>' ) !== false ) {
-            return true;
-        }
-
-        return new WP_Error( 'api_error', __( 'Invalid API response', 'moneris-enhanced-gateway-for-woocommerce' ) );
+        // Use credential manager for testing
+        return $this->credential_manager->test_connection();
     }
 
     /**
-     * Encrypt sensitive credential
+     * Get credential manager instance
      *
-     * @param string $value Value to encrypt.
-     * @return string
+     * @return Moneris_Credential_Manager
      */
-    private function encrypt_credential( $value ) {
-        if ( empty( $value ) ) {
-            return $value;
-        }
-
-        // Use WordPress salts for encryption
-        $key = wp_salt( 'auth' );
-        $encrypted = openssl_encrypt( $value, 'AES-256-CBC', $key, 0, substr( $key, 0, 16 ) );
-
-        return base64_encode( $encrypted );
-    }
-
-    /**
-     * Decrypt sensitive credential
-     *
-     * @param string $value Value to decrypt.
-     * @return string
-     */
-    private function decrypt_credential( $value ) {
-        if ( empty( $value ) ) {
-            return $value;
-        }
-
-        // Check if value is already decrypted (backward compatibility)
-        if ( strpos( $value, '=' ) === false && strlen( $value ) < 50 ) {
-            return $value;
-        }
-
-        $key = wp_salt( 'auth' );
-        $decoded = base64_decode( $value );
-
-        if ( false === $decoded ) {
-            return $value;
-        }
-
-        $decrypted = openssl_decrypt( $decoded, 'AES-256-CBC', $key, 0, substr( $key, 0, 16 ) );
-
-        return false !== $decrypted ? $decrypted : $value;
+    public function get_credential_manager() {
+        return $this->credential_manager;
     }
 
     /**

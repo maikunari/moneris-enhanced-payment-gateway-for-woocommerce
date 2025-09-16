@@ -101,6 +101,11 @@ require_once MONERIS_PLUGIN_DIR . 'includes/class-moneris-autoloader.php';
 // Initialize the autoloader
 Moneris_Enhanced_Gateway\Moneris_Autoloader::init();
 
+// Load WP-CLI commands if available
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+    require_once MONERIS_PLUGIN_DIR . 'includes/cli/class-moneris-cli-commands.php';
+}
+
 /**
  * Main plugin class instance
  *

@@ -1,0 +1,201 @@
+/**
+ * Moneris Order Admin Styles
+ *
+ * @package MonerisEnhancedGateway
+ */
+
+/* Moneris order meta box */
+.moneris-order-meta {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.moneris-order-meta h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    color: #23282d;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.moneris-order-meta table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.moneris-order-meta table td {
+    padding: 8px 0;
+    vertical-align: top;
+}
+
+.moneris-order-meta table td:first-child {
+    width: 40%;
+    font-weight: 600;
+    color: #666;
+}
+
+.moneris-order-meta table td:last-child {
+    color: #23282d;
+}
+
+/* Payment status badges */
+.moneris-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.moneris-status.captured {
+    background: #4caf50;
+    color: #fff;
+}
+
+.moneris-status.authorized {
+    background: #ff9800;
+    color: #fff;
+}
+
+.moneris-status.refunded {
+    background: #9e9e9e;
+    color: #fff;
+}
+
+.moneris-status.failed {
+    background: #f44336;
+    color: #fff;
+}
+
+/* Capture button */
+.moneris-capture-button {
+    margin-top: 10px;
+}
+
+.moneris-capture-button button {
+    background: #0073aa;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.moneris-capture-button button:hover {
+    background: #005a87;
+}
+
+.moneris-capture-button button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Transaction details */
+.moneris-transaction-details {
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+}
+
+.moneris-transaction-details .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.moneris-transaction-details .detail-row:last-child {
+    border-bottom: none;
+}
+
+.moneris-transaction-details .detail-label {
+    font-weight: 600;
+    color: #666;
+    flex: 0 0 40%;
+}
+
+.moneris-transaction-details .detail-value {
+    color: #23282d;
+    flex: 1;
+    text-align: right;
+}
+
+/* Refund history */
+.moneris-refund-history {
+    margin-top: 15px;
+}
+
+.moneris-refund-history h4 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.moneris-refund-history .refund-item {
+    padding: 8px;
+    margin-bottom: 5px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-left: 3px solid #9e9e9e;
+    border-radius: 2px;
+}
+
+.moneris-refund-history .refund-amount {
+    font-weight: 600;
+    color: #f44336;
+}
+
+.moneris-refund-history .refund-date {
+    color: #999;
+    font-size: 12px;
+}
+
+/* Card information display */
+.moneris-card-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.moneris-card-icon {
+    width: 32px;
+    height: 20px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.moneris-card-icon.visa {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNTFBNSIvPgo8L3N2Zz4=');
+}
+
+.moneris-card-icon.mastercard {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iI0VCMDAxQiIvPgo8L3N2Zz4=');
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .moneris-order-meta table td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .moneris-order-meta table td:first-child {
+        padding-bottom: 2px;
+    }
+
+    .moneris-order-meta table td:last-child {
+        padding-bottom: 10px;
+        padding-left: 0;
+    }
+}

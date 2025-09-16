@@ -112,6 +112,13 @@ function moneris_enhanced_gateway() {
 
 // Hook into plugins_loaded to initialize the plugin
 add_action( 'plugins_loaded', function() {
+    // Load text domain early for translation support
+    load_plugin_textdomain(
+        'moneris-enhanced-gateway-for-woocommerce',
+        false,
+        dirname( plugin_basename( __FILE__ ) ) . '/languages/'
+    );
+
     if ( moneris_check_requirements() ) {
         moneris_enhanced_gateway();
     }
@@ -123,13 +130,41 @@ register_activation_hook( __FILE__, array( 'Moneris_Enhanced_Gateway\Moneris_Enh
 // Register deactivation hook
 register_deactivation_hook( __FILE__, array( 'Moneris_Enhanced_Gateway\Moneris_Enhanced_Gateway_Main', 'deactivate' ) );
 
-// Register uninstall hook
-register_uninstall_hook( __FILE__, array( 'Moneris_Enhanced_Gateway\Moneris_Enhanced_Gateway_Main', 'uninstall' ) );
+// Uninstall is now handled by uninstall.php for better cleanup
+// register_uninstall_hook( __FILE__, array( 'Moneris_Enhanced_Gateway\Moneris_Enhanced_Gateway_Main', 'uninstall' ) );
 
 // Declare compatibility with WooCommerce HPOS (High Performance Order Storage)
+// This is now handled by the WooCommerce integration class for better organization
 add_action( 'before_woocommerce_init', function() {
     if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
     }
 } );
+
+// Handle WooCommerce deactivation
+add_action( 'deactivated_plugin', function( $plugin ) {
+    if ( $plugin === 'woocommerce/woocommerce.php' ) {
+        // Check if our plugin is active
+        if ( is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+            // Deactivate our plugin if WooCommerce is deactivated
+            deactivate_plugins( plugin_basename( __FILE__ ) );
+
+            // Add admin notice about the deactivation
+            add_action( 'admin_notices', function() {
+                ?>
+                <div class="notice notice-warning is-dismissible">
+                    <p>
+                        <?php
+                        esc_html_e(
+                            'Moneris Enhanced Payment Gateway has been deactivated because WooCommerce is no longer active.',
+                            'moneris-enhanced-gateway-for-woocommerce'
+                        );
+                        ?>
+                    </p>
+                </div>
+                <?php
+            } );
+        }
+    }
+}, 10, 1 );

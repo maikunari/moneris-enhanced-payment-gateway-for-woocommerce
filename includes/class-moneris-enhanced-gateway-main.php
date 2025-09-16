@@ -55,6 +55,13 @@ final class Moneris_Enhanced_Gateway_Main {
     public $logger = null;
 
     /**
+     * WooCommerce Integration instance
+     *
+     * @var Moneris_WooCommerce_Integration|null
+     */
+    public $woocommerce_integration = null;
+
+    /**
      * Plugin activation status
      *
      * @var bool
@@ -103,14 +110,17 @@ final class Moneris_Enhanced_Gateway_Main {
      * @return bool
      */
     private function check_dependencies() {
+        // Initialize WooCommerce integration
+        $this->woocommerce_integration = Moneris_WooCommerce_Integration::get_instance();
+
         // Check if WooCommerce is active
-        if ( ! class_exists( 'WooCommerce' ) ) {
+        if ( ! $this->woocommerce_integration->is_woocommerce_active() ) {
             add_action( 'admin_notices', array( $this, 'woocommerce_missing_notice' ) );
             return false;
         }
 
         // Check WooCommerce version
-        if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, MONERIS_MIN_WC_VERSION, '<' ) ) {
+        if ( ! $this->check_woocommerce_version() ) {
             add_action( 'admin_notices', array( $this, 'woocommerce_version_notice' ) );
             return false;
         }
@@ -119,14 +129,28 @@ final class Moneris_Enhanced_Gateway_Main {
     }
 
     /**
+     * Check WooCommerce version
+     *
+     * @return bool
+     */
+    public function check_woocommerce_version() {
+        if ( ! defined( 'WC_VERSION' ) ) {
+            return false;
+        }
+
+        // Check for minimum WooCommerce 7.1
+        return version_compare( WC_VERSION, '7.1', '>=' );
+    }
+
+    /**
      * Initialize hooks
      */
     private function init_hooks() {
-        // Load text domain for translations
-        add_action( 'init', array( $this, 'load_textdomain' ) );
+        // Load text domain for translations - moved to init for proper loading
+        add_action( 'init', array( $this, 'load_textdomain' ), 1 );
 
-        // Add gateway to WooCommerce
-        add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateway' ) );
+        // Gateway registration is now handled by WooCommerce integration class
+        // add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateway' ) );
 
         // Enqueue scripts and styles
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
@@ -186,12 +210,14 @@ final class Moneris_Enhanced_Gateway_Main {
 
     /**
      * Add gateway to WooCommerce
+     * Note: This is now handled by the WooCommerce integration class
      *
+     * @deprecated 1.0.0 Use WooCommerce integration class instead
      * @param array $gateways Payment gateways.
      * @return array
      */
     public function add_gateway( $gateways ) {
-        $gateways[] = 'Moneris_Enhanced_Gateway\Gateways\Moneris_Gateway';
+        // Handled by WooCommerce integration class
         return $gateways;
     }
 
@@ -365,9 +391,24 @@ final class Moneris_Enhanced_Gateway_Main {
      * WooCommerce missing notice
      */
     public function woocommerce_missing_notice() {
+        // Check if WooCommerce can be activated
+        $can_activate = file_exists( WP_PLUGIN_DIR . '/woocommerce/woocommerce.php' );
         ?>
         <div class="notice notice-error">
-            <p><?php esc_html_e( 'Moneris Enhanced Payment Gateway requires WooCommerce to be installed and active.', 'moneris-enhanced-gateway-for-woocommerce' ); ?></p>
+            <p>
+                <strong><?php esc_html_e( 'Moneris Enhanced Payment Gateway', 'moneris-enhanced-gateway-for-woocommerce' ); ?></strong>
+                <?php esc_html_e( 'requires WooCommerce to be installed and active.', 'moneris-enhanced-gateway-for-woocommerce' ); ?>
+
+                <?php if ( $can_activate && current_user_can( 'activate_plugins' ) ) : ?>
+                    <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'plugins.php?action=activate&plugin=woocommerce/woocommerce.php' ), 'activate-plugin_woocommerce/woocommerce.php' ) ); ?>" class="button button-primary">
+                        <?php esc_html_e( 'Activate WooCommerce', 'moneris-enhanced-gateway-for-woocommerce' ); ?>
+                    </a>
+                <?php elseif ( current_user_can( 'install_plugins' ) ) : ?>
+                    <a href="<?php echo esc_url( admin_url( 'plugin-install.php?s=woocommerce&tab=search&type=term' ) ); ?>" class="button button-primary">
+                        <?php esc_html_e( 'Install WooCommerce', 'moneris-enhanced-gateway-for-woocommerce' ); ?>
+                    </a>
+                <?php endif; ?>
+            </p>
         </div>
         <?php
     }
@@ -379,14 +420,21 @@ final class Moneris_Enhanced_Gateway_Main {
         ?>
         <div class="notice notice-warning">
             <p>
+                <strong><?php esc_html_e( 'Moneris Enhanced Payment Gateway', 'moneris-enhanced-gateway-for-woocommerce' ); ?></strong>
                 <?php
                 printf(
                     /* translators: %1$s: Required WooCommerce version, %2$s: Current WooCommerce version */
-                    esc_html__( 'Moneris Enhanced Payment Gateway requires WooCommerce %1$s or later. You are running WooCommerce %2$s.', 'moneris-enhanced-gateway-for-woocommerce' ),
-                    esc_html( MONERIS_MIN_WC_VERSION ),
+                    esc_html__( 'requires WooCommerce %1$s or later. You are running WooCommerce %2$s.', 'moneris-enhanced-gateway-for-woocommerce' ),
+                    '7.1',
                     esc_html( WC_VERSION )
                 );
                 ?>
+
+                <?php if ( current_user_can( 'update_plugins' ) ) : ?>
+                    <a href="<?php echo esc_url( admin_url( 'update-core.php' ) ); ?>" class="button button-primary">
+                        <?php esc_html_e( 'Update WooCommerce', 'moneris-enhanced-gateway-for-woocommerce' ); ?>
+                    </a>
+                <?php endif; ?>
             </p>
         </div>
         <?php
@@ -396,6 +444,15 @@ final class Moneris_Enhanced_Gateway_Main {
      * Plugin activation
      */
     public static function activate() {
+        // Check WooCommerce dependency before activation
+        if ( ! class_exists( 'WooCommerce' ) ) {
+            wp_die(
+                esc_html__( 'Moneris Enhanced Payment Gateway requires WooCommerce to be installed and activated.', 'moneris-enhanced-gateway-for-woocommerce' ),
+                esc_html__( 'Plugin Activation Error', 'moneris-enhanced-gateway-for-woocommerce' ),
+                array( 'back_link' => true )
+            );
+        }
+
         // Create database tables if needed
         self::create_tables();
 
@@ -410,6 +467,9 @@ final class Moneris_Enhanced_Gateway_Main {
             $logger = new Utils\Moneris_Logger();
             $logger->log( 'Plugin activated' );
         }
+
+        // Set activation flag
+        update_option( 'moneris_enhanced_gateway_activated', true );
     }
 
     /**
@@ -418,15 +478,24 @@ final class Moneris_Enhanced_Gateway_Main {
     public static function deactivate() {
         // Clear scheduled hooks
         wp_clear_scheduled_hook( 'moneris_cleanup_logs' );
+        wp_clear_scheduled_hook( 'moneris_check_pending_captures' );
+        wp_clear_scheduled_hook( 'moneris_sync_transactions' );
 
         // Clear permalinks
         flush_rewrite_rules();
+
+        // Clear transients
+        delete_transient( 'moneris_gateway_status' );
+        delete_transient( 'moneris_api_test_result' );
 
         // Log deactivation
         if ( class_exists( 'Moneris_Enhanced_Gateway\Utils\Moneris_Logger' ) ) {
             $logger = new Utils\Moneris_Logger();
             $logger->log( 'Plugin deactivated' );
         }
+
+        // Remove activation flag
+        delete_option( 'moneris_enhanced_gateway_activated' );
     }
 
     /**

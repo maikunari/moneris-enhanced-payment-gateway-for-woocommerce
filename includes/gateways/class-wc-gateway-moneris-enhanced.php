@@ -674,12 +674,46 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * Output payment fields
      */
     public function payment_fields() {
+        // Display description
         if ( $this->description ) {
             echo wpautop( wptexturize( $this->description ) );
         }
 
-        // HPP iframe will be implemented here
-        echo '<div id="moneris-hpp-container"></div>';
+        // Check if hosted tokenization is enabled
+        $use_hosted_tokenization = $this->get_option( 'hosted_tokenization', 'no' ) === 'yes';
+
+        if ( $use_hosted_tokenization ) {
+            // Use hosted tokenization iframe
+            $tokenization = new \Moneris_Enhanced_Gateway\API\Moneris_Hosted_Tokenization( $this );
+
+            // Get iframe URL (without order for now, as order isn't created yet at checkout)
+            $iframe_url = $tokenization->get_iframe_url();
+
+            // Set variables for template
+            $test_mode = $this->is_test_mode();
+            $iframe_origin = $test_mode
+                ? 'https://esqa.moneris.com'
+                : 'https://www3.moneris.com';
+            $debug_mode = $this->get_option( 'enable_logging' ) === 'yes';
+
+            // Include template
+            if ( file_exists( MONERIS_PLUGIN_DIR . 'templates/payment-form-hosted-tokenization.php' ) ) {
+                include MONERIS_PLUGIN_DIR . 'templates/payment-form-hosted-tokenization.php';
+            } else {
+                // Fallback if template not found
+                echo '<div class="woocommerce-error">' . esc_html__( 'Payment form template not found. Please contact support.', 'moneris-enhanced-gateway-for-woocommerce' ) . '</div>';
+            }
+        } else {
+            // Standard payment form (direct API)
+            if ( file_exists( MONERIS_PLUGIN_DIR . 'templates/payment-form.php' ) ) {
+                include MONERIS_PLUGIN_DIR . 'templates/payment-form.php';
+            } else {
+                // Basic fallback form
+                echo '<div id="moneris-payment-form">';
+                echo '<p>' . esc_html__( 'Credit card details will be securely processed.', 'moneris-enhanced-gateway-for-woocommerce' ) . '</p>';
+                echo '</div>';
+            }
+        }
     }
 
     /**

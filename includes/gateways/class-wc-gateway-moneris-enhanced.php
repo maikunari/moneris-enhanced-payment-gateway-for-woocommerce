@@ -55,12 +55,9 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * Constructor
      */
     public function __construct() {
-        // Initialize credential manager
-        $this->credential_manager = new Moneris_Credential_Manager( $this->is_test_mode() );
-
         // Gateway configuration
         $this->id                 = 'moneris_enhanced';
-        $this->icon               = $this->get_gateway_icon();
+        $this->icon               = '';
         $this->has_fields         = true;
         $this->method_title       = __( 'Moneris Enhanced Gateway', 'moneris-enhanced-gateway-for-woocommerce' );
         $this->method_description = __( 'Secure Canadian payment processing via Moneris with Hosted Tokenization for PCI compliance', 'moneris-enhanced-gateway-for-woocommerce' );
@@ -86,6 +83,12 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
         $this->title       = $this->get_option( 'title' );
         $this->description = $this->get_option( 'description' );
         $this->enabled     = $this->get_option( 'enabled' );
+
+        // Initialize credential manager after settings are loaded
+        $this->credential_manager = new Moneris_Credential_Manager( $this->is_test_mode() );
+
+        // Set icon after settings are loaded
+        $this->icon = $this->get_gateway_icon();
 
         // Hooks
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
@@ -219,7 +222,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
                 'description' => sprintf(
                     /* translators: %s: log path */
                     __( 'Log Moneris events, such as API requests. You can check the log in %s', 'moneris-enhanced-gateway-for-woocommerce' ),
-                    '<code>' . WC_Log_Handler_File::get_log_file_path( 'moneris-enhanced' ) . '</code>'
+                    '<code>' . \WC_Log_Handler_File::get_log_file_path( 'moneris-enhanced' ) . '</code>'
                 ),
             ),
             'enable_tokenization' => array(
@@ -273,7 +276,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
 
         if ( ! empty( $errors ) ) {
             foreach ( $errors as $error ) {
-                WC_Admin_Settings::add_error( $error );
+                \WC_Admin_Settings::add_error( $error );
             }
             return false;
         }
@@ -288,7 +291,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
             $credential_result = $this->credential_manager->store_credentials( $store_id, $api_token, $hpp_id, $hpp_key );
 
             if ( is_wp_error( $credential_result ) ) {
-                WC_Admin_Settings::add_error(
+                \WC_Admin_Settings::add_error(
                     sprintf(
                         /* translators: %s: error message */
                         __( 'Failed to store credentials: %s', 'moneris-enhanced-gateway-for-woocommerce' ),
@@ -307,7 +310,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
             $test_result = $this->credential_manager->test_connection();
 
             if ( is_wp_error( $test_result ) ) {
-                WC_Admin_Settings::add_error(
+                \WC_Admin_Settings::add_error(
                     sprintf(
                         /* translators: %s: error message */
                         __( 'API Connection Test Failed: %s', 'moneris-enhanced-gateway-for-woocommerce' ),
@@ -315,13 +318,13 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
                     )
                 );
             } else {
-                WC_Admin_Settings::add_message(
+                \WC_Admin_Settings::add_message(
                     __( 'API Connection Test Successful!', 'moneris-enhanced-gateway-for-woocommerce' )
                 );
 
                 // Check if credentials need rotation
                 if ( $this->credential_manager->needs_rotation() ) {
-                    WC_Admin_Settings::add_message(
+                    \WC_Admin_Settings::add_message(
                         __( 'Note: Your credentials are due for rotation. Consider updating them soon for security.', 'moneris-enhanced-gateway-for-woocommerce' )
                     );
                 }

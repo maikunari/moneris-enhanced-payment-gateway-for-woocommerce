@@ -221,11 +221,10 @@ class Moneris_WooCommerce_Integration {
         if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
             require_once MONERIS_PLUGIN_DIR . 'includes/blocks/class-moneris-blocks-support.php';
 
+            // Use the static register method from the Blocks support class
             add_action(
                 'woocommerce_blocks_payment_method_type_registration',
-                function( $payment_method_registry ) {
-                    $payment_method_registry->register( new Blocks\Moneris_Blocks_Support() );
-                }
+                array( 'Moneris_Enhanced_Gateway\Blocks\Moneris_Blocks_Support', 'register' )
             );
         }
     }

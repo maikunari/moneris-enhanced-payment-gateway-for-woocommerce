@@ -706,6 +706,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
         } else {
             // Standard payment form (direct API)
             if ( file_exists( MONERIS_PLUGIN_DIR . 'templates/payment-form.php' ) ) {
+                $gateway = $this; // Pass gateway instance to template
                 include MONERIS_PLUGIN_DIR . 'templates/payment-form.php';
             } else {
                 // Basic fallback form

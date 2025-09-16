@@ -98,6 +98,9 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
         // Admin scripts
         add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 
+        // Frontend scripts
+        add_action( 'wp_enqueue_scripts', array( $this, 'frontend_scripts' ) );
+
         // AJAX handlers
         add_action( 'wp_ajax_moneris_test_connection', array( $this, 'ajax_test_connection' ) );
     }
@@ -599,6 +602,51 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
     }
 
     /**
+     * Enqueue frontend scripts
+     */
+    public function frontend_scripts() {
+        // Only load on checkout
+        if ( ! is_checkout() || ! $this->is_available() ) {
+            return;
+        }
+
+        // Check if using hosted tokenization
+        $use_hosted_tokenization = $this->get_option( 'hosted_tokenization', 'no' ) === 'yes';
+        if ( ! $use_hosted_tokenization ) {
+            return; // Don't load if not using HPP
+        }
+
+        // Enqueue checkout script
+        wp_enqueue_script(
+            'moneris-checkout',
+            MONERIS_PLUGIN_URL . 'assets/js/moneris-checkout' . ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min' ) . '.js',
+            array( 'jquery', 'wc-checkout' ),
+            MONERIS_VERSION,
+            true
+        );
+
+        // Localize script
+        wp_localize_script(
+            'moneris-checkout',
+            'moneris_checkout_params',
+            array(
+                'ajax_url'      => admin_url( 'admin-ajax.php' ),
+                'test_mode'     => $this->is_test_mode(),
+                'iframe_origin' => $this->is_test_mode() ? 'https://esqa.moneris.com' : 'https://www3.moneris.com',
+                'debug'         => $this->get_option( 'enable_logging' ) === 'yes',
+                'nonce'         => wp_create_nonce( 'moneris_payment' ),
+                'gateway_id'    => $this->id,
+                'strings'       => array(
+                    'processing'    => __( 'Processing payment...', 'moneris-enhanced-gateway-for-woocommerce' ),
+                    'error_generic' => __( 'An error occurred processing your payment. Please try again.', 'moneris-enhanced-gateway-for-woocommerce' ),
+                    'timeout'       => __( 'Payment processing timed out. Please try again.', 'moneris-enhanced-gateway-for-woocommerce' ),
+                    'invalid_card'  => __( 'Invalid card details. Please check and try again.', 'moneris-enhanced-gateway-for-woocommerce' ),
+                ),
+            )
+        );
+    }
+
+    /**
      * Check if current page is gateway settings page
      *
      * @return bool
@@ -663,10 +711,184 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
             );
         }
 
-        // Implementation will be added in next phase
+        try {
+            // Check if using hosted tokenization
+            $use_hosted_tokenization = $this->get_option( 'hosted_tokenization', 'no' ) === 'yes';
+
+            if ( $use_hosted_tokenization ) {
+                // Process with HPP token
+                $token = isset( $_POST['moneris_token'] ) ? sanitize_text_field( $_POST['moneris_token'] ) : '';
+
+                if ( empty( $token ) ) {
+                    throw new \Exception( __( 'Payment token not received. Please try again.', 'moneris-enhanced-gateway-for-woocommerce' ) );
+                }
+
+                // Process payment with token
+                $result = $this->process_token_payment( $order, $token );
+
+            } else {
+                // Process with direct API (card details)
+                $result = $this->process_direct_payment( $order );
+            }
+
+            if ( $result['success'] ) {
+                // Payment successful
+                $order->payment_complete( $result['transaction_id'] );
+                $order->add_order_note(
+                    sprintf(
+                        __( 'Moneris payment completed. Transaction ID: %s', 'moneris-enhanced-gateway-for-woocommerce' ),
+                        $result['transaction_id']
+                    )
+                );
+
+                // Clear cart
+                WC()->cart->empty_cart();
+
+                return array(
+                    'result'   => 'success',
+                    'redirect' => $this->get_return_url( $order ),
+                );
+            } else {
+                throw new \Exception( $result['message'] ?? __( 'Payment failed. Please try again.', 'moneris-enhanced-gateway-for-woocommerce' ) );
+            }
+
+        } catch ( \Exception $e ) {
+            // Log error
+            if ( $this->get_option( 'enable_logging' ) === 'yes' ) {
+                $logger = new \Moneris_Enhanced_Gateway\Utils\Moneris_Logger();
+                $logger->log( 'Payment processing error: ' . $e->getMessage(), 'error' );
+            }
+
+            // Add order note
+            $order->add_order_note(
+                sprintf(
+                    __( 'Payment failed: %s', 'moneris-enhanced-gateway-for-woocommerce' ),
+                    $e->getMessage()
+                )
+            );
+
+            // Show error to user
+            wc_add_notice( $e->getMessage(), 'error' );
+
+            return array(
+                'result'   => 'fail',
+                'redirect' => '',
+            );
+        }
+    }
+
+    /**
+     * Process payment with HPP token
+     *
+     * @param \WC_Order $order Order object.
+     * @param string    $token HPP token.
+     * @return array
+     */
+    private function process_token_payment( $order, $token ) {
+        // Initialize API handler
+        $api = new \Moneris_Enhanced_Gateway\API\Moneris_API();
+        $api->set_credentials(
+            $this->get_store_id(),
+            $this->get_api_token(),
+            $this->is_test_mode()
+        );
+
+        // Build transaction data
+        $transaction_data = array(
+            'type'       => 'res_purchase_cc',
+            'data_key'   => $token,
+            'order_id'   => $order->get_order_number(),
+            'amount'     => $order->get_total(),
+            'crypt_type' => '7', // SSL-enabled e-commerce
+            'cust_id'    => $order->get_customer_id(),
+        );
+
+        // Process transaction
+        $response = $api->process_transaction( $transaction_data );
+
+        if ( is_wp_error( $response ) ) {
+            return array(
+                'success' => false,
+                'message' => $response->get_error_message(),
+            );
+        }
+
+        // Check response
+        if ( isset( $response['response_code'] ) && in_array( $response['response_code'], array( '00', '000' ), true ) ) {
+            return array(
+                'success'        => true,
+                'transaction_id' => $response['transaction_no'] ?? '',
+            );
+        }
+
         return array(
-            'result'   => 'success',
-            'redirect' => $this->get_return_url( $order ),
+            'success' => false,
+            'message' => $response['message'] ?? __( 'Transaction declined', 'moneris-enhanced-gateway-for-woocommerce' ),
+        );
+    }
+
+    /**
+     * Process payment with direct API
+     *
+     * @param \WC_Order $order Order object.
+     * @return array
+     */
+    private function process_direct_payment( $order ) {
+        // Get card details from POST
+        $card_number = isset( $_POST['moneris_card_number'] ) ? str_replace( ' ', '', sanitize_text_field( $_POST['moneris_card_number'] ) ) : '';
+        $card_expiry = isset( $_POST['moneris_card_expiry'] ) ? str_replace( array( ' ', '/' ), '', sanitize_text_field( $_POST['moneris_card_expiry'] ) ) : '';
+        $card_cvc    = isset( $_POST['moneris_card_cvc'] ) ? sanitize_text_field( $_POST['moneris_card_cvc'] ) : '';
+
+        // Validate card details
+        if ( empty( $card_number ) || empty( $card_expiry ) || empty( $card_cvc ) ) {
+            return array(
+                'success' => false,
+                'message' => __( 'Please enter valid card details.', 'moneris-enhanced-gateway-for-woocommerce' ),
+            );
+        }
+
+        // Initialize API handler
+        $api = new \Moneris_Enhanced_Gateway\API\Moneris_API();
+        $api->set_credentials(
+            $this->get_store_id(),
+            $this->get_api_token(),
+            $this->is_test_mode()
+        );
+
+        // Build transaction data
+        $transaction_data = array(
+            'type'        => 'purchase',
+            'order_id'    => $order->get_order_number(),
+            'amount'      => $order->get_total(),
+            'pan'         => $card_number,
+            'expdate'     => $card_expiry,
+            'cvd_value'   => $card_cvc,
+            'cvd_indicator' => '1',
+            'crypt_type'  => '7',
+            'cust_id'     => $order->get_customer_id(),
+        );
+
+        // Process transaction
+        $response = $api->process_transaction( $transaction_data );
+
+        if ( is_wp_error( $response ) ) {
+            return array(
+                'success' => false,
+                'message' => $response->get_error_message(),
+            );
+        }
+
+        // Check response
+        if ( isset( $response['response_code'] ) && in_array( $response['response_code'], array( '00', '000' ), true ) ) {
+            return array(
+                'success'        => true,
+                'transaction_id' => $response['transaction_no'] ?? '',
+            );
+        }
+
+        return array(
+            'success' => false,
+            'message' => $response['message'] ?? __( 'Transaction declined', 'moneris-enhanced-gateway-for-woocommerce' ),
         );
     }
 

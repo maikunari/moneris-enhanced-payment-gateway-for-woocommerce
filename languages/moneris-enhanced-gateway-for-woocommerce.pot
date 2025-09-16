@@ -1,0 +1,270 @@
+# Copyright (C) 2024 Moneris Enhanced Payment Gateway for WooCommerce
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Moneris Enhanced Payment Gateway for WooCommerce 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/moneris-enhanced-gateway-for-woocommerce\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2024-01-01T00:00:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.9.0\n"
+"X-Domain: moneris-enhanced-gateway-for-woocommerce\n"
+
+#. Plugin Name of the plugin
+msgid "Moneris Enhanced Payment Gateway for WooCommerce"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://yourwebsite.com/moneris-enhanced-gateway"
+msgstr ""
+
+#. Description of the plugin
+msgid "Secure Canadian payment processing with Moneris Hosted Tokenization"
+msgstr ""
+
+#. Author of the plugin
+msgid "[Your Name]"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://yourwebsite.com"
+msgstr ""
+
+#: includes/admin/class-moneris-admin.php:48
+msgid "Moneris Gateway"
+msgstr ""
+
+#: includes/admin/class-moneris-admin.php:63
+msgid "Configure your Moneris payment gateway settings in WooCommerce settings."
+msgstr ""
+
+#: includes/admin/class-moneris-admin.php:65
+msgid "Go to Settings"
+msgstr ""
+
+#: includes/admin/class-moneris-admin.php:80
+#: includes/gateways/class-moneris-gateway.php:96
+msgid "Settings"
+msgstr ""
+
+#: includes/admin/class-moneris-admin.php:94
+msgid "Moneris Gateway:"
+msgstr ""
+
+#: includes/admin/class-moneris-admin.php:95
+msgid "SSL is required for production mode. Please enable SSL on your site."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:47
+msgid "Moneris Enhanced Gateway"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:48
+msgid "Accept credit card payments through Moneris with enhanced security features including hosted tokenization."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:86
+msgid "(TEST MODE ENABLED)"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:97
+msgid "Enable/Disable"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:99
+msgid "Enable Moneris Enhanced Gateway"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:103
+msgid "Title"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:105
+msgid "This controls the title which the user sees during checkout."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:106
+#: moneris-enhanced-gateway-for-woocommerce.php:50
+msgid "Credit Card (Moneris)"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:110
+msgid "Description"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:112
+msgid "This controls the description which the user sees during checkout."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:113
+#: moneris-enhanced-gateway-for-woocommerce.php:51
+msgid "Pay securely with your credit card through Moneris."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:116
+msgid "Test mode"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:117
+msgid "Enable Test Mode"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:119
+msgid "Place the payment gateway in test mode using test API keys."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:124
+msgid "Test Store ID"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:126
+msgid "Enter your Moneris test store ID."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:131
+msgid "Test API Token"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:133
+msgid "Enter your Moneris test API token."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:138
+msgid "Production Store ID"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:140
+msgid "Enter your Moneris production store ID."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:145
+msgid "Production API Token"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:147
+msgid "Enter your Moneris production API token."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:152
+msgid "Hosted Tokenization"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:153
+msgid "Enable Hosted Tokenization"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:155
+msgid "Use Moneris Hosted Tokenization for enhanced security."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:160
+msgid "Save Cards"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:161
+msgid "Allow customers to save cards for future purchases"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:163
+msgid "If enabled, users will be able to pay with a saved card during checkout."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:168
+msgid "Capture"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:169
+msgid "Capture charge immediately"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:171
+msgid "Whether or not to immediately capture the transaction. When unchecked, the transaction will be authorized but will need to be captured manually."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:176
+msgid "Debug Log"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:178
+msgid "Enable logging"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:180
+msgid "Log events such as API requests"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:195
+msgid "Invalid order."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:218
+msgid "Moneris payment completed successfully"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:227
+msgid "Payment failed. Please try again."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:251
+msgid "Invalid order"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:258
+msgid "No transaction ID found"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:275
+msgid "Refunded %s - Reason: %s"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:277
+msgid "No reason provided"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:284
+msgid "Refund failed"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:307
+#: templates/payment-form.php:31
+msgid "Card Number"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:312
+#: templates/payment-form.php:52
+msgid "Expiry (MM/YY)"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:317
+#: templates/payment-form.php:70
+msgid "Card Code"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:327
+#: templates/payment-form.php:96
+msgid "Save to account"
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:349
+msgid "Card number is required."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:355
+msgid "Card expiry is required."
+msgstr ""
+
+#: includes/gateways/class-moneris-gateway.php:361
+msgid "Card security code is required."
+msgstr ""
+
+#: templates/payment-form.php:64
+msgid "MM / YY"
+msgstr ""
+
+#: templates/payment-form.php:82
+msgid "CVC"
+msgstr ""

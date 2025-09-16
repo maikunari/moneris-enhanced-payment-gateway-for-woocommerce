@@ -1,0 +1,192 @@
+/**
+ * Moneris Enhanced Gateway Admin Styles
+ *
+ * @package MonerisEnhancedGateway
+ */
+
+/* Settings page header */
+.moneris-admin-header {
+    background: #fff;
+    border-left: 4px solid #0073aa;
+    padding: 15px 20px;
+    margin: 20px 0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.moneris-admin-header h2 {
+    margin: 0 0 10px;
+    color: #23282d;
+}
+
+.moneris-admin-header p {
+    margin: 0;
+    color: #666;
+}
+
+/* Settings sections */
+.moneris-settings-section {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+.moneris-settings-section h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Status indicators */
+.moneris-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.moneris-status.connected {
+    background: #4caf50;
+    color: #fff;
+}
+
+.moneris-status.disconnected {
+    background: #f44336;
+    color: #fff;
+}
+
+.moneris-status.test-mode {
+    background: #ff9800;
+    color: #fff;
+}
+
+/* API credentials validation */
+.moneris-validation {
+    margin-top: 10px;
+}
+
+.moneris-validation-message {
+    padding: 10px;
+    border-radius: 3px;
+    margin-top: 10px;
+}
+
+.moneris-validation-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.moneris-validation-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Test credentials button */
+.moneris-test-credentials {
+    margin-top: 10px;
+}
+
+.moneris-test-credentials button {
+    background: #0073aa;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.moneris-test-credentials button:hover {
+    background: #005a87;
+}
+
+.moneris-test-credentials button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Documentation links */
+.moneris-docs {
+    background: #f7f7f7;
+    border-left: 4px solid #2196f3;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.moneris-docs h4 {
+    margin-top: 0;
+}
+
+.moneris-docs ul {
+    list-style: disc;
+    margin-left: 20px;
+}
+
+.moneris-docs a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.moneris-docs a:hover {
+    text-decoration: underline;
+}
+
+/* Transaction logs table */
+.moneris-logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.moneris-logs-table th,
+.moneris-logs-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.moneris-logs-table th {
+    background: #f7f7f7;
+    font-weight: 600;
+}
+
+.moneris-logs-table tr:hover {
+    background: #f9f9f9;
+}
+
+/* Loading spinner */
+.moneris-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #0073aa;
+    border-radius: 50%;
+    animation: moneris-admin-spin 1s linear infinite;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+@keyframes moneris-admin-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .moneris-settings-section {
+        padding: 15px;
+    }
+    
+    .moneris-logs-table {
+        font-size: 14px;
+    }
+    
+    .moneris-logs-table th,
+    .moneris-logs-table td {
+        padding: 8px 5px;
+    }
+}

@@ -1,0 +1,142 @@
+/**
+ * Moneris Enhanced Gateway Frontend Styles
+ *
+ * @package MonerisEnhancedGateway
+ */
+
+/* Payment method container */
+.payment_method_moneris_enhanced_gateway {
+    position: relative;
+}
+
+/* Card form styling */
+#wc-moneris_enhanced_gateway-cc-form {
+    padding: 0;
+    border: 0;
+}
+
+/* Card icons */
+.moneris-card-icons {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+.moneris-card-icons img {
+    max-height: 25px;
+    margin: 0 2px;
+    vertical-align: middle;
+}
+
+/* Test mode notice */
+.moneris-test-mode {
+    background: #ffeb3b;
+    color: #333;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 0.875em;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+/* Saved cards */
+.moneris-saved-cards {
+    margin-bottom: 20px;
+}
+
+.moneris-saved-card {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    position: relative;
+}
+
+.moneris-saved-card.selected {
+    border-color: #0073aa;
+    background: #f7fcfe;
+}
+
+.moneris-saved-card input[type="radio"] {
+    margin-right: 10px;
+}
+
+.moneris-card-details {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.moneris-card-brand {
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.moneris-card-last4 {
+    color: #666;
+}
+
+.moneris-card-expiry {
+    color: #999;
+    font-size: 0.875em;
+    margin-left: 10px;
+}
+
+/* Loading state */
+.moneris-processing {
+    position: relative;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.moneris-processing::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: moneris-spin 1s linear infinite;
+}
+
+@keyframes moneris-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error messages */
+.moneris-error {
+    color: #e2401c;
+    font-size: 0.875em;
+    margin-top: 5px;
+    display: none;
+}
+
+.moneris-error.show {
+    display: block;
+}
+
+/* Hosted tokenization iframe */
+.moneris-hosted-frame {
+    width: 100%;
+    min-height: 300px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .moneris-saved-card {
+        padding: 10px;
+    }
+    
+    .moneris-card-expiry {
+        display: block;
+        margin-left: 0;
+        margin-top: 5px;
+    }
+}

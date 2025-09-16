@@ -63,11 +63,18 @@ class Moneris_Autoloader {
         $parts = explode( '/', $path );
         $class_name = array_pop( $parts );
 
-        // Convert class name to file name
-        $file_name = 'class-' . str_replace( '_', '-', strtolower( $class_name ) ) . '.php';
+        // Special handling for WC_Gateway classes
+        if ( strpos( $class_name, 'WC_Gateway_' ) === 0 ) {
+            // Keep the WC_Gateway prefix intact, convert to lowercase with hyphens
+            $file_name = 'class-' . str_replace( '_', '-', strtolower( $class_name ) ) . '.php';
+        } else {
+            // For other classes, convert underscores to hyphens and make lowercase
+            $file_name = 'class-' . str_replace( '_', '-', strtolower( $class_name ) ) . '.php';
+        }
 
         // Build full file path
         if ( ! empty( $parts ) ) {
+            // Convert subdirectory names to lowercase
             $subdirectory = strtolower( implode( '/', $parts ) );
             $file = self::$base_dir . $subdirectory . '/' . $file_name;
         } else {

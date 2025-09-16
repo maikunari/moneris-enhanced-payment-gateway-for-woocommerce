@@ -400,7 +400,7 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
      * @return bool
      */
     public function is_test_mode() {
-        return 'yes' === $this->get_option( 'test_mode' );
+        return 'yes' === $this->get_option( 'test_mode', 'no' );
     }
 
     /**

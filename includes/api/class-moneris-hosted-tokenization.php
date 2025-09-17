@@ -84,16 +84,24 @@ class Moneris_Hosted_Tokenization {
         }
 
         // Get HPP credentials
-        $hpp_id  = $this->get_hpp_id();
-        $hpp_key = $this->get_hpp_key();
+        $hpp_id   = $this->get_hpp_id();
+        $hpp_key  = $this->get_hpp_key();
+        $store_id = $this->get_store_id();
 
-        if ( empty( $hpp_id ) || empty( $hpp_key ) ) {
+        if ( empty( $hpp_id ) || empty( $hpp_key ) || empty( $store_id ) ) {
+            $this->logger->log( sprintf(
+                'Missing credentials - HPP ID: %s, HPP Key: %s, Store ID: %s',
+                $hpp_id ? 'Present' : 'Empty',
+                $hpp_key ? 'Present' : 'Empty',
+                $store_id ? 'Present' : 'Empty'
+            ), 'error' );
             return new \WP_Error( 'missing_credentials', __( 'HPP credentials not configured', 'moneris-enhanced-gateway-for-woocommerce' ) );
         }
 
         // Build request data
         $request_data = array(
             'hpp_id'           => $hpp_id,
+            'ps_store_id'      => $store_id,
             'charge_total'     => $order->get_total(),
             'order_no'         => $order->get_order_number(),
             'cust_id'          => $order->get_customer_id(),
@@ -149,8 +157,9 @@ class Moneris_Hosted_Tokenization {
             return '';
         }
 
-        // Build message for HMAC
+        // Build message for HMAC - fields must be in specific order per Moneris documentation
         $message_fields = array(
+            'ps_store_id',  // Store ID is critical for authentication
             'hpp_id',
             'charge_total',
             'order_no',
@@ -160,14 +169,30 @@ class Moneris_Hosted_Tokenization {
         );
 
         $message = '';
+        $included_fields = array();
         foreach ( $message_fields as $field ) {
-            if ( isset( $data[ $field ] ) ) {
+            if ( isset( $data[ $field ] ) && $data[ $field ] !== '' ) {
                 $message .= $data[ $field ];
+                $included_fields[] = $field . '=' . $data[ $field ];
             }
+        }
+
+        // Log HMAC calculation for debugging (without showing the key or final HMAC)
+        $this->logger->log( sprintf(
+            'HMAC calculation - Fields included: [%s], Message length: %d',
+            implode( ', ', $included_fields ),
+            strlen( $message )
+        ), 'debug' );
+
+        if ( empty( $message ) ) {
+            $this->logger->log( 'HMAC calculation failed: No valid fields found for message construction', 'error' );
+            return '';
         }
 
         // Generate HMAC-SHA256
         $hmac = hash_hmac( 'sha256', $message, $hpp_key );
+
+        $this->logger->log( 'HMAC signature generated successfully', 'debug' );
 
         return $hmac;
     }
@@ -226,8 +251,24 @@ class Moneris_Hosted_Tokenization {
         // Get HPP ID
         $hpp_id = $this->get_hpp_id();
 
+        // Comprehensive validation and error logging
+        if ( empty( $hpp_id ) ) {
+            $this->logger->log( 'Error: HPP ID is empty - cannot generate iframe URL', 'error' );
+        }
+
+        $store_id = $this->get_store_id();
+        if ( empty( $store_id ) ) {
+            $this->logger->log( 'Error: Store ID is empty - this will cause authentication failures', 'error' );
+        }
+
+        $hpp_key = $this->get_hpp_key();
+        if ( empty( $hpp_key ) ) {
+            $this->logger->log( 'Error: HPP Key is empty - HMAC validation will fail', 'error' );
+        }
+
         // If no real HPP ID, show a test message
         if ( empty( $hpp_id ) || 'TEST_HPP_001' === $hpp_id ) {
+            $this->logger->log( 'Displaying test configuration page due to missing/test HPP credentials', 'warning' );
             // Return a data URL with instructions
             $test_html = '
             <html>
@@ -320,21 +361,53 @@ class Moneris_Hosted_Tokenization {
         // Build real iframe URL
         $base_url = $this->is_test_mode() ? $this->hpp_urls['test'] : $this->hpp_urls['production'];
 
-        // Basic parameters
+        // Get required credentials
+        $store_id = $this->get_store_id();
+
+        // Basic parameters - ps_store_id is critical for authentication
         $params = array(
             'hpp_id'      => $hpp_id,
+            'ps_store_id' => $store_id,
             'hpp_preload' => '',
         );
+
+        // Log credential status for debugging
+        $this->logger->log( sprintf(
+            'Building HPP iframe URL - HPP ID: %s, Store ID: %s, Mode: %s',
+            $hpp_id ? 'Present' : 'Empty',
+            $store_id ? 'Present' : 'Empty',
+            $this->is_test_mode() ? 'Test' : 'Production'
+        ), 'info' );
 
         // Add order data if provided
         if ( $order instanceof \WC_Order ) {
             $request_data = $this->generate_hpp_request( $order );
             if ( ! is_wp_error( $request_data ) ) {
                 $params = array_merge( $params, $request_data );
+                $this->logger->log( 'Successfully added order data to HPP parameters for order ' . $order->get_order_number(), 'debug' );
+            } else {
+                $this->logger->log( 'Failed to generate HPP request data for order ' . $order->get_order_number() . ': ' . $request_data->get_error_message(), 'error' );
             }
         }
 
-        return add_query_arg( $params, $base_url );
+        $final_url = add_query_arg( $params, $base_url );
+
+        // Log final URL (without sensitive data)
+        $this->logger->log( sprintf(
+            'Generated HPP iframe URL: %s with %d parameters',
+            $base_url,
+            count( $params )
+        ), 'info' );
+
+        // Additional validation for critical authentication parameters
+        if ( empty( $params['ps_store_id'] ) ) {
+            $this->logger->log( 'CRITICAL: ps_store_id parameter is missing from iframe URL - this will cause error 945', 'error' );
+        }
+        if ( empty( $params['hpp_id'] ) ) {
+            $this->logger->log( 'CRITICAL: hpp_id parameter is missing from iframe URL', 'error' );
+        }
+
+        return $final_url;
     } 
 
     /**
@@ -410,11 +483,15 @@ class Moneris_Hosted_Tokenization {
      */
     private function get_hpp_id() {
         if ( $this->gateway ) {
-            return $this->gateway->get_hpp_id();
+            $hpp_id = $this->gateway->get_hpp_id();
+            $this->logger->log( 'Retrieved HPP ID: ' . ($hpp_id ? 'Present' : 'Empty'), 'debug' );
+            return $hpp_id;
         }
 
         // Fallback to placeholder
-        return $this->is_test_mode() ? 'TEST_HPP_001' : '';
+        $fallback = $this->is_test_mode() ? 'TEST_HPP_001' : '';
+        $this->logger->log( 'Using fallback HPP ID: ' . $fallback, 'debug' );
+        return $fallback;
     }
 
     /**
@@ -424,11 +501,33 @@ class Moneris_Hosted_Tokenization {
      */
     private function get_hpp_key() {
         if ( $this->gateway ) {
-            return $this->gateway->get_hpp_key();
+            $hpp_key = $this->gateway->get_hpp_key();
+            $this->logger->log( 'Retrieved HPP Key: ' . ($hpp_key ? 'Present' : 'Empty'), 'debug' );
+            return $hpp_key;
         }
 
         // Fallback to placeholder
-        return $this->is_test_mode() ? 'hp_key_placeholder_123' : '';
+        $fallback = $this->is_test_mode() ? 'hp_key_placeholder_123' : '';
+        $this->logger->log( 'Using fallback HPP Key: ' . $fallback, 'debug' );
+        return $fallback;
+    }
+
+    /**
+     * Get Store ID
+     *
+     * @return string
+     */
+    private function get_store_id() {
+        if ( $this->gateway ) {
+            $store_id = $this->gateway->get_store_id();
+            $this->logger->log( 'Retrieved Store ID: ' . ($store_id ? 'Present' : 'Empty'), 'debug' );
+            return $store_id;
+        }
+
+        // Fallback to placeholder
+        $fallback = $this->is_test_mode() ? 'store1' : '';
+        $this->logger->log( 'Using fallback Store ID: ' . $fallback, 'debug' );
+        return $fallback;
     }
 
     /**
@@ -513,6 +612,7 @@ class Moneris_Hosted_Tokenization {
             '487' => __( 'Invalid merchant configuration', 'moneris-enhanced-gateway-for-woocommerce' ),
             '489' => __( 'Invalid currency', 'moneris-enhanced-gateway-for-woocommerce' ),
             '490' => __( 'Invalid transaction', 'moneris-enhanced-gateway-for-woocommerce' ),
+            '945' => __( 'Invalid credentials - please check Store ID and HPP configuration', 'moneris-enhanced-gateway-for-woocommerce' ),
         );
 
         $code = (string) $response_code;
@@ -601,8 +701,24 @@ class Moneris_Hosted_Tokenization {
             );
         } else {
             // Failed
-            $error_message = $this->get_response_message( $response_data['response_code'] ?? '999' );
-            $order->add_order_note( sprintf( __( 'Payment failed: %s', 'moneris-enhanced-gateway-for-woocommerce' ), $error_message ) );
+            $response_code = $response_data['response_code'] ?? '999';
+            $error_message = $this->get_response_message( $response_code );
+
+            // Special handling for credential errors (response code 945)
+            if ( '945' === $response_code ) {
+                $this->logger->log( sprintf(
+                    'Error 945 (Invalid Credentials) detected for order %s. This usually indicates missing or incorrect Store ID, HPP ID, or HPP Key configuration.',
+                    $order->get_order_number()
+                ), 'error' );
+
+                // Add detailed note for admin debugging
+                $order->add_order_note( sprintf(
+                    __( 'Payment failed with error 945 (Invalid Credentials). Please verify Store ID, HPP ID, and HPP Key are correctly configured for the %s environment.', 'moneris-enhanced-gateway-for-woocommerce' ),
+                    $this->is_test_mode() ? 'test' : 'production'
+                ) );
+            } else {
+                $order->add_order_note( sprintf( __( 'Payment failed: %s', 'moneris-enhanced-gateway-for-woocommerce' ), $error_message ) );
+            }
 
             return array(
                 'success' => false,

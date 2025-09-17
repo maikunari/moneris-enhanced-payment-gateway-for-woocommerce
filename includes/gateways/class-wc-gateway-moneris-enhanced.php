@@ -28,6 +28,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
 
+    protected $logger;
+    protected $test_mode;
+
     /**
      * API URLs
      *

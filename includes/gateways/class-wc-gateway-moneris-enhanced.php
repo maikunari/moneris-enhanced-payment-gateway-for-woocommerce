@@ -714,13 +714,14 @@ class WC_Gateway_Moneris_Enhanced extends WC_Payment_Gateway {
         }
 
         try {
+            // Get token from request
+            $token = isset( $_POST['moneris_token'] ) ? sanitize_text_field( $_POST['moneris_token'] ) : '';
+
             // Check if using hosted tokenization
             $use_hosted_tokenization = $this->get_option( 'hosted_tokenization', 'no' ) === 'yes';
 
-            if ( $use_hosted_tokenization ) {
+            if ( $use_hosted_tokenization || ! empty( $token ) ) {
                 // Process with HPP token
-                $token = isset( $_POST['moneris_token'] ) ? sanitize_text_field( $_POST['moneris_token'] ) : '';
-
                 if ( empty( $token ) ) {
                     throw new \Exception( __( 'Payment token not received. Please try again.', 'moneris-enhanced-gateway-for-woocommerce' ) );
                 }

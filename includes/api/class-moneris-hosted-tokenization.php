@@ -335,7 +335,7 @@ class Moneris_Hosted_Tokenization {
         }
 
         return add_query_arg( $params, $base_url );
-    }
+    } 
 
     /**
      * Save token for session
